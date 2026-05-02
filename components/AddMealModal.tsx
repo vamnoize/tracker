@@ -9,28 +9,51 @@ interface AddMealModalProps {
   onSave: (analysis: NutritionAnalysis, imageBase64: string) => Promise<void>
 }
 
+// Compress + resize image to max 1024px, JPEG 85% — keeps mobile photos under ~300KB
+function compressImage(dataUrl: string, maxPx = 1024, quality = 0.85): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.src = dataUrl
+  })
+}
+
 export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageBase64, setImageBase64] = useState<string | null>(null)
   const [dragover, setDragover] = useState(false)
+  const [compressing, setCompressing] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFile = useCallback((file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setError('กรุณาเลือกไฟล์รูปภาพเท่านั้น')
       return
     }
+    setError(null)
+    setAnalysis(null)
+    setCompressing(true)
+
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const result = e.target?.result as string
-      setImagePreview(result)
-      setImageBase64(result)
-      setAnalysis(null)
-      setError(null)
+    reader.onload = async (e) => {
+      const raw = e.target?.result as string
+      const compressed = await compressImage(raw)
+      setImagePreview(compressed)
+      setImageBase64(compressed)
+      setCompressing(false)
     }
     reader.readAsDataURL(file)
   }, [])
@@ -53,10 +76,13 @@ export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64 }),
       })
-      if (!res.ok) throw new Error('Analysis failed')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Analysis failed')
+      }
       setAnalysis(await res.json())
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setAnalyzing(false)
     }
@@ -73,6 +99,8 @@ export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
       setSaving(false)
     }
   }
+
+  const isLoading = compressing || analyzing
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -92,12 +120,13 @@ export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
               onDrop={handleDrop}
             >
               <div className="upload-icon">📷</div>
-              <div className="upload-text">คลิกหรือลากรูปอาหารมาวางที่นี่</div>
+              <div className="upload-text">แตะเพื่อถ่ายรูปหรือเลือกรูปอาหาร</div>
               <div className="upload-sub">PNG, JPG, WEBP</div>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 style={{ display: 'none' }}
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
@@ -105,12 +134,14 @@ export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
           ) : (
             <div className="upload-preview">
               <img src={imagePreview} alt="Food preview" />
-              <button
-                className="upload-preview-remove"
-                onClick={() => { setImagePreview(null); setImageBase64(null); setAnalysis(null) }}
-              >
-                ✕
-              </button>
+              {!isLoading && !analysis && (
+                <button
+                  className="upload-preview-remove"
+                  onClick={() => { setImagePreview(null); setImageBase64(null); setAnalysis(null) }}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
 
@@ -118,7 +149,14 @@ export default function AddMealModal({ onClose, onSave }: AddMealModalProps) {
             <p style={{ color: 'var(--color-danger)', fontSize: '13px', marginTop: '10px' }}>{error}</p>
           )}
 
-          {imagePreview && !analysis && !analyzing && (
+          {compressing && (
+            <div className="analyzing-state">
+              <div className="spinner spinner-dark"></div>
+              <span>กำลังประมวลผลรูป...</span>
+            </div>
+          )}
+
+          {imagePreview && !analysis && !isLoading && (
             <button
               className="btn btn-primary"
               style={{ width: '100%', marginTop: '14px', justifyContent: 'center' }}
