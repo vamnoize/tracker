@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { Profile, DailySummary } from '@/types'
 import Link from 'next/link'
+import NutritionChart from '@/components/NutritionChart'
 import '@/styles/dashboard.css'
 
 function formatDate(date: Date): string {
@@ -169,6 +170,9 @@ export default async function DashboardPage() {
               </span>
             </div>
           </div>
+
+          {/* Chart */}
+          <NutritionChart calLimit={calLimit} protLimit={protLimit} />
 
           {/* Placeholder modules */}
           <div className="module-card">
