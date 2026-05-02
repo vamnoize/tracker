@@ -7,127 +7,211 @@
 }
 
 @media (min-width: 640px) {
-  .dashboard-header { margin-bottom: 28px; }
+  .dashboard-header { margin-bottom: 24px; }
 }
 
 .dashboard-date { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
 
-/* Mobile: stack vertically. Desktop: 2 columns */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-@media (min-width: 480px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-}
-
-/* Mobile: 2 columns. Desktop: 3 columns */
-.dashboard-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-@media (min-width: 640px) {
-  .dashboard-grid-3 {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-}
-
-.summary-card {
+/* ── Nutrition summary card ── */
+.nutrition-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
+  padding: 0;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 16px;
+  overflow: hidden;
 }
 
-@media (min-width: 640px) {
-  .summary-card { padding: 20px; }
+.nutrition-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
-.summary-card-label {
-  font-size: 11px;
+.nutrition-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.nutrition-card-meals {
+  font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--color-text-muted);
-  margin-bottom: 6px;
+  background: var(--color-border-light);
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
-.summary-card-value {
-  font-size: 24px;
+/* Each nutrient row (calories, protein) */
+.nutrient-row {
+  padding: 16px 18px 12px;
+}
+
+.nutrient-row + .nutrient-row {
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.nutrient-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.nutrient-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.nutrient-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nutrient-values {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.nutrient-current {
+  font-size: 18px;
   font-weight: 700;
   line-height: 1;
-  margin-bottom: 4px;
 }
 
-@media (min-width: 640px) {
-  .summary-card-value { font-size: 28px; }
+.nutrient-sep {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
-.summary-card-sub { font-size: 12px; color: var(--color-text-muted); }
+.nutrient-limit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
 
-.summary-card-calories .summary-card-value { color: var(--color-accent); }
-.summary-card-protein .summary-card-value { color: var(--color-protein); }
-.summary-card-carbs .summary-card-value { color: var(--color-carbs); }
-.summary-card-fat .summary-card-value { color: var(--color-fat); }
-
-.progress-bar-wrap { margin-top: 10px; }
-
-.progress-bar-track {
-  height: 6px;
+.nutrient-bar-track {
+  height: 8px;
   background: var(--color-border-light);
   border-radius: 999px;
   overflow: hidden;
 }
 
-.progress-bar-fill {
+.nutrient-bar-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.4s ease;
-  background: var(--color-accent);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 4px;
 }
 
-.progress-bar-fill.over { background: var(--color-danger); }
-.progress-bar-fill.protein { background: var(--color-protein); }
-
-.progress-bar-label {
-  display: flex;
-  justify-content: space-between;
+.nutrient-pct {
   font-size: 11px;
   color: var(--color-text-muted);
-  margin-bottom: 4px;
+  margin-top: 5px;
+  text-align: right;
 }
 
+/* Divider */
+.nutrition-card-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 0 18px;
+}
+
+/* Carbs + Fat */
+.macro-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.macro-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.macro-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--color-border-light);
+  margin: 0 16px;
+}
+
+.macro-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.macro-value {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.macro-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* Remaining calories footer */
+.calorie-remain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.calorie-remain.under {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.calorie-remain.over {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.calorie-remain-icon { font-size: 15px; line-height: 1; }
+.calorie-remain-text { font-size: 13px; font-weight: 500; }
+
+/* ── Placeholder modules ── */
 .module-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 12px;
 }
 
 @media (min-width: 640px) {
-  .module-card { padding: 24px; margin-bottom: 16px; }
+  .module-card { padding: 20px 24px; margin-bottom: 16px; }
 }
 
 .module-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .module-card-title { font-size: 15px; font-weight: 600; }
@@ -136,7 +220,7 @@
 .module-placeholder {
   background: var(--color-border-light);
   border-radius: var(--radius-md);
-  height: 72px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;

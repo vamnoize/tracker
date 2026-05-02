@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MealLog, Profile, NutritionAnalysis } from '@/types'
 import AddMealModal from '@/components/AddMealModal'
+import MealDetailModal from '@/components/MealDetailModal'
 import '@/styles/food.css'
+import '@/styles/dashboard.css'
+import '@/styles/meal-detail.css'
 
 interface FoodClientProps {
   initialMeals: MealLog[]
@@ -26,6 +29,7 @@ function getMealNames(meal: MealLog): string {
 export default function FoodClient({ initialMeals, profile, userId }: FoodClientProps) {
   const [meals, setMeals] = useState<MealLog[]>(initialMeals)
   const [showModal, setShowModal] = useState(false)
+  const [selectedMeal, setSelectedMeal] = useState<MealLog | null>(null)
   const supabase = createClient()
 
   const calLimit = profile?.daily_calorie_limit ?? 2000
@@ -41,11 +45,12 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
 
-  const barWidth = (val: number, limit: number) =>
-    `${Math.min((val / limit) * 100, 100)}%`
+  const calOver = totals.calories > calLimit
+  const calRemain = calLimit - totals.calories
+  const calPct = Math.min((totals.calories / calLimit) * 100, 100)
+  const protPct = Math.min((totals.protein / protLimit) * 100, 100)
 
   const handleSave = async (analysis: NutritionAnalysis, imageBase64: string) => {
-    // Upload image to Cloudinary at save time
     let imageUrl: string | null = null
     const uploadRes = await fetch('/api/upload-image', {
       method: 'POST',
@@ -85,6 +90,7 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
   return (
     <div className="page-content">
       <div className="container">
+
         <div className="food-header">
           <h1 className="page-title">Food Tracking วันนี้</h1>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
@@ -92,50 +98,97 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
           </button>
         </div>
 
-        {/* Daily nutrition bars */}
-        <div className="nutrition-bar-row">
-          <div className="nutrition-bar-item">
-            <div className="nutrition-bar-label">แคลอรี</div>
-            <div className={`nutrition-bar-amount calories ${totals.calories > calLimit ? 'over' : ''}`}>
-              {totals.calories.toLocaleString()}
+        {/* Nutrition summary card — same design as dashboard */}
+        <div className="nutrition-card">
+          <div className="nutrition-card-header">
+            <span className="nutrition-card-title">สรุปสารอาหารวันนี้</span>
+            <span className="nutrition-card-meals">{meals.length} มื้อ</span>
+          </div>
+
+          <div className="nutrient-row">
+            <div className="nutrient-row-top">
+              <div className="nutrient-label">
+                <span className="nutrient-dot" style={{ background: 'var(--color-accent)' }} />
+                แคลอรี
+              </div>
+              <div className="nutrient-values">
+                <span className="nutrient-current" style={{ color: calOver ? 'var(--color-danger)' : 'var(--color-accent)' }}>
+                  {totals.calories.toLocaleString()}
+                </span>
+                <span className="nutrient-sep">/</span>
+                <span className="nutrient-limit">{calLimit.toLocaleString()} kcal</span>
+              </div>
             </div>
-            <div className="nutrition-bar-track">
+            <div className="nutrient-bar-track">
               <div
-                className={`nutrition-bar-fill calories ${totals.calories > calLimit ? 'over' : ''}`}
-                style={{ width: barWidth(totals.calories, calLimit) }}
+                className="nutrient-bar-fill"
+                style={{
+                  width: `${calPct}%`,
+                  background: calOver ? 'var(--color-danger)' : 'var(--color-accent)',
+                }}
               />
             </div>
-            <div className="nutrition-bar-limit">เป้า {calLimit.toLocaleString()} kcal</div>
+            <div className="nutrient-pct" style={{ color: calOver ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+              {calPct.toFixed(0)}%{calOver ? ' — เกินเป้าหมาย' : ''}
+            </div>
           </div>
 
-          <div className="nutrition-bar-item">
-            <div className="nutrition-bar-label">โปรตีน</div>
-            <div className="nutrition-bar-amount protein">{totals.protein.toFixed(1)}g</div>
-            <div className="nutrition-bar-track">
+          <div className="nutrient-row">
+            <div className="nutrient-row-top">
+              <div className="nutrient-label">
+                <span className="nutrient-dot" style={{ background: 'var(--color-protein)' }} />
+                โปรตีน
+              </div>
+              <div className="nutrient-values">
+                <span className="nutrient-current" style={{ color: 'var(--color-protein)' }}>
+                  {totals.protein.toFixed(1)}
+                </span>
+                <span className="nutrient-sep">/</span>
+                <span className="nutrient-limit">{protLimit} g</span>
+              </div>
+            </div>
+            <div className="nutrient-bar-track">
               <div
-                className="nutrition-bar-fill protein"
-                style={{ width: barWidth(totals.protein, protLimit) }}
+                className="nutrient-bar-fill"
+                style={{ width: `${protPct}%`, background: 'var(--color-protein)' }}
               />
             </div>
-            <div className="nutrition-bar-limit">เป้า {protLimit}g</div>
+            <div className="nutrient-pct">{protPct.toFixed(0)}%</div>
           </div>
 
-          <div className="nutrition-bar-item">
-            <div className="nutrition-bar-label">คาร์บ</div>
-            <div className="nutrition-bar-amount carbs">{totals.carbs.toFixed(1)}g</div>
-            <div className="nutrition-bar-track">
-              <div className="nutrition-bar-fill carbs" style={{ width: '100%', opacity: 0.3 }} />
+          <div className="nutrition-card-divider" />
+
+          <div className="macro-row">
+            <div className="macro-item">
+              <span className="nutrient-dot" style={{ background: 'var(--color-carbs)' }} />
+              <div>
+                <div className="macro-label">คาร์โบไฮเดรต</div>
+                <div className="macro-value" style={{ color: 'var(--color-carbs)' }}>
+                  {totals.carbs.toFixed(1)} <span className="macro-unit">g</span>
+                </div>
+              </div>
             </div>
-            <div className="nutrition-bar-limit">{meals.length} มื้อ</div>
+            <div className="macro-divider" />
+            <div className="macro-item">
+              <span className="nutrient-dot" style={{ background: 'var(--color-fat)' }} />
+              <div>
+                <div className="macro-label">ไขมัน</div>
+                <div className="macro-value" style={{ color: 'var(--color-fat)' }}>
+                  {totals.fat.toFixed(1)} <span className="macro-unit">g</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="nutrition-bar-item">
-            <div className="nutrition-bar-label">ไขมัน</div>
-            <div className="nutrition-bar-amount fat">{totals.fat.toFixed(1)}g</div>
-            <div className="nutrition-bar-track">
-              <div className="nutrition-bar-fill fat" style={{ width: '100%', opacity: 0.3 }} />
-            </div>
-            <div className="nutrition-bar-limit">วันนี้</div>
+          <div className="nutrition-card-divider" />
+
+          <div className={`calorie-remain ${calOver ? 'over' : 'under'}`}>
+            <span className="calorie-remain-icon">{calOver ? '⚠️' : '✓'}</span>
+            <span className="calorie-remain-text">
+              {calOver
+                ? `เกินเป้าหมาย ${Math.abs(calRemain).toLocaleString()} kcal`
+                : `คงเหลืออีก ${calRemain.toLocaleString()} kcal`}
+            </span>
           </div>
         </div>
 
@@ -149,18 +202,25 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
         ) : (
           <div className="meal-list">
             {meals.map((meal) => (
-              <div key={meal.id} className="meal-card">
+              <div key={meal.id} className="meal-card meal-card-clickable" onClick={() => setSelectedMeal(meal)}>
+                <button
+                  className="meal-delete-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (window.confirm(`ลบมื้ออาหารนี้ใช่ไหม?\n"${getMealNames(meal)}"`)) {
+                      handleDelete(meal.id)
+                    }
+                  }}
+                  title="ลบมื้ออาหาร"
+                >
+                  ✕
+                </button>
                 <div className="meal-card-inner">
                   {meal.image_url ? (
-                    <img
-                      src={meal.image_url}
-                      alt="Food"
-                      className="meal-card-image"
-                    />
+                    <img src={meal.image_url} alt="Food" className="meal-card-image" />
                   ) : (
                     <div className="meal-card-image-placeholder">🍽️</div>
                   )}
-
                   <div className="meal-card-content">
                     <div className="meal-card-time">{formatTime(meal.logged_at)}</div>
                     <div className="meal-card-title">{getMealNames(meal)}</div>
@@ -180,16 +240,6 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
                     </div>
                   </div>
                 </div>
-
-                <div className="meal-card-actions">
-                  <button
-                    className="meal-delete-btn"
-                    onClick={() => handleDelete(meal.id)}
-                    title="ลบมื้ออาหาร"
-                  >
-                    ✕
-                  </button>
-                </div>
               </div>
             ))}
           </div>
@@ -200,6 +250,13 @@ export default function FoodClient({ initialMeals, profile, userId }: FoodClient
         <AddMealModal
           onClose={() => setShowModal(false)}
           onSave={handleSave}
+        />
+      )}
+
+      {selectedMeal && (
+        <MealDetailModal
+          meal={selectedMeal}
+          onClose={() => setSelectedMeal(null)}
         />
       )}
     </div>
